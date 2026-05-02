@@ -123,7 +123,33 @@ def create_app():
             
             return f(*args, **kwargs)
         return decorated
+    
+    # flask app.after_request is a decorator that runs the function below after every response before its sent to the client. essentially using it to add security headerse to every response.
+    @app.after_request
+    def set_security_headers(response): 
+        # prevents browsers from MIME-Sniffing When a server sends a file, it tells the browser what type it is (HTML, JavaScript, image, etc.) via the Content-Type header. 
+        # But browsers used to "guess" the type if the header was missing or seemed wrong — this is called MIME-sniffing. An attacker could upload a file that looks like an image but contains JavaScript. 
+        # Without this header, the browser might sniff it, decide it's actually JavaScript, and execute it. nosniff tells the browser "trust the Content-Type I'm sending you, don't guess."
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        # prevents click jacking - An iframe lets you embed one website inside another. Attackers use this for clickjacking — 
+        # they put your site in an invisible iframe on their page, then trick users into clicking buttons on your site without knowing it. 
+        # For example, a user thinks they're clicking "Win a prize" but they're actually clicking "Transfer money" on your banking site hidden behind it. DENY means "never allow my site to be loaded inside an iframe, anywhere."
+        response.headers["X-Frame-Options"] = "DENY"
+        # control what referrer info is sent - When you click a link from one site to another, your browser sends a Referer header telling the new site where you came from — including the full URL. That URL might contain sensitive stuff like tokens or session IDs. 
+        # This policy says: when going to a different site, only send the origin (https://myapp.com) not the full path (https://myapp.com/dashboard?token=abc). Within your own site, send the full URL since that's safe.
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        # disables browser features you don't need - This tells the browser "this site doesn't need camera, microphone, or geolocation access." 
+        # The empty () means no one can use these features — not even iframes embedded in your page. Why does this matter? 
+        # If your site had a cross-site scripting (XSS) vulnerability, an attacker's injected script could try to access the user's camera or location. This header blocks that even if the XSS attack succeeds. It's a defense-in-depth measure
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        # Enforce HTTPS only for production - This tells the browser "from now on, always use HTTPS to connect to my site, even if the user types http://." max-age=63072000 means remember this for 2 years. 
+        # includeSubDomains applies the same rule to all subdomains. preload means you're opting into browser preload lists — Chrome, Firefox, etc. ship with a built-in list of sites that should always use HTTPS, so even the very first visit is protected. 
+        # Without HSTS, an attacker on the same network could intercept that first HTTP request before the redirect to HTTPS happens (called an SSL stripping attack).
+        # checks for the environt is prod or test as testing environment most likey do not have certificates set up especially for local testing.
+        if os.getenv("FLASK_ENV") == "production":
+            response.headers['Strict-Transport-Security'] = "max-age=63072000; includeSubDomains; preload"
 
+        return response
 
     # Route 1: Home page
     @app.route("/")
