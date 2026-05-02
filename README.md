@@ -13,7 +13,7 @@ Basic web app created using Python Flask for studying learning OIDC integration 
 - IDE
 - Auth0 Account
 
-##Auth0 Setup:
+## Auth0 Setup:
 - Create an Account at https://auth0.auth0.com/
 - Create Application - Regular Web App
 - Change Allowed Callback URLs and Allowed Logout URLs in settings to http://127.0.0.1:5000/callback and http://127.0.0.1:5000
